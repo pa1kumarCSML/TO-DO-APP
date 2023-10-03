@@ -1,0 +1,414 @@
+
+SERVER: {
+
+    const express = require('express');
+    const bodyParser = require('body-parser');
+    const cors = require('cors');
+    const mongoose = require('mongoose')
+
+    const app = express();
+    const PORT = 5000;
+    const CONNECTION_STRING = 'mongodb+srv://derangulapavankumar:TmX9BkDpuh8EIMyI@cluster0.xqb3pgl.mongodb.net/todoTracker?retryWrites=true&w=majority';
+
+    // Middleware
+    app.use(bodyParser.json());
+    app.use(cors());
+
+
+    // MongoDB Atlas Connection (replace connection string)
+
+    mongoose
+        .connect(CONNECTION_STRING, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        })
+        .then(() => {
+            console.log('MongoDB connected');
+        })
+        .catch((err) => {
+            console.error('MongoDB connection error:', err);
+        });
+
+
+
+    // Define routes here...
+
+    app.use('/api/?', require('./routes/?'));
+
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
+
+MODEL: {
+    const mongoose = require('mongoose')
+
+    const schema = mongoose.Schema({
+        attributeName1: {
+            type: Number / String / Boolean,
+            required: [true, 'error message'],
+        },
+        attributeName2: {
+            type: Number / String / Boolean,
+            required: [true, 'error message'],
+        },
+    },
+        {
+            timestamps: true,
+        }
+    )
+
+    module.exports = mongoose.model('schemaName', schema)
+}
+
+ROUTER: {
+    const express = require('express')
+    const router = express.Router()
+    const { create, get,
+        update, delete
+} = require('../controllers/todoController')
+
+    router.post('/', create)
+    router.get('/', get)
+    router.put('/:id', update)
+    router.delete('/:id', delete)
+
+    module.exports = router
+}
+
+CONTROLLER: {
+    const asyncHandler = require("express-async-handler")
+
+    const collectionName = require("../models/?")
+
+
+    const post = asyncHandler(async (req, res) => {
+        const Item = await collectionName.create(req.body);
+        if (!Item) {
+            res.status(400)
+            throw new Error("Item not created")
+        }
+        res.status(200).json(Item)
+    })
+
+    const get = asyncHandler(async (req, res) => {
+        const List = await collectionName.find();
+        if (List) {
+            res.status(200).json(List)
+        }
+    })
+
+
+    const update = asyncHandler(async (req, res) => {
+        const Item = await collectionName.findById(req.params.id)
+
+        if (!Item) {
+            res.status(400)
+            throw new Error("Todo item not found")
+        }
+        const updatedItem = await collectionName.findByIdAndUpdate(req.params.id, req.body, {
+            new: true,
+        })
+        res.status(200).json(updatedItem)
+    })
+
+
+
+    const delete = asyncHandler(async (req, res) => {
+        const Item = await collectionName.findById(req.params.id)
+        if (!Item) {
+            res.status(400)
+            throw new Error("Item not found")
+        }
+        await collectionName.findByIdAndDelete(req.params.id)
+        res.status(200).json({ id: req.params.id })
+    })
+
+    module.exports = {
+        create, get,
+        update, delete
+    }
+}
+
+APP.js: {
+    import React, { useEffect, useState } from 'react';
+    import './App.css'
+    import axios from 'axios';
+
+    function App() {
+        const baseURL = 'http://localhost:5000/api/todo/';
+        const [todoList, setTodoList] = useState([]);
+        const [filterTodoList, setFilterTodoList] = useState([])
+        const [activeTab, setActiveTab] = useState(true);
+        const [showPopup, setShowPopup] = useState(false);
+        const [title, setTitle] = useState('');
+        const [description, setDescription] = useState('');
+
+        const openPopup = () => {
+            setShowPopup(true);
+        };
+
+        const closePopup = () => {
+            setShowPopup(false);
+            // Clear input fields when closing the popup
+            setTitle('');
+            setDescription('');
+        };
+
+
+        const postData = () => {
+            // POST request example
+            const newPost = {
+                title: title,
+                description: description,
+                status: true
+            };
+
+            axios
+                .post(baseURL, newPost)
+                .then((res) => {
+
+                    setTodoList(todoList => [...todoList, res.data]);
+                    //updateFilterData(activeTab);
+                    setTitle('');
+                    setDescription('');
+                    closePopup();
+                })
+                .catch((error) => {
+                    closePopup();
+                });
+        };
+
+        const updateData = (id) => {
+            // PUT request example (update an existing resource)
+
+            const newPost = todoList.filter((post) => post._id === id);
+            newPost[0].status = false;
+
+            axios
+                .put(baseURL + id, newPost[0])
+                .then((res) => {
+                    setTodoList(todoList => todoList.map((todo) => {
+                        if (todo._id === id) {
+                            todo.status = false
+                        }
+                        return todo
+                    }));
+                    //updateFilterData(true);
+                })
+                .catch((err) => {
+                });
+        };
+
+        const deleteData = (id) => {
+            // DELETE request example (delete an existing resource)
+            axios
+                .delete(baseURL + id)
+                .then(() => {
+                    // const updatedList = todoList.filter((post) => post._id !== id);
+                    setTodoList(todoList => todoList.filter((post) => post._id !== id));
+                    //updateFilterData(activeTab);
+                })
+                .catch((err) => {
+                });
+        };
+
+        const getTodoList = () => {
+            axios
+                .get(baseURL)
+                .then((res) => {
+                    setActiveTab(true);
+                    setTodoList(res.data);
+                })
+                .catch((error) => {
+                });
+        }
+
+        const handleTabChange = (tab) => {
+            closePopup();
+            setActiveTab(tab);
+            //updateFilterData(tab);
+        };
+
+        useEffect(() => {
+            getTodoList();
+        }, []);
+
+        useEffect(() => {
+            const updateFilterData = (tab) => {
+                const filterTodoList = todoList.filter((item) => item.status === tab);
+                setFilterTodoList(filterTodoList);
+            }
+            updateFilterData(activeTab);
+        }, [activeTab, todoList]);
+
+        return (
+            <div>
+                <div className='headerr'>
+                    <h1>TO-DO Tracker</h1>
+                </div>
+
+                <nav className="navbar">
+                    <button
+                        className={activeTab ? 'active' : ''}
+                        onClick={() => handleTabChange(true)}
+                    >
+                        Pending Tasks
+                    </button>
+                    <button
+                        className={activeTab === false ? 'active' : ''}
+                        onClick={() => handleTabChange(false)}
+                    >
+                        Completed Tasks
+                    </button>
+                </nav>
+                <div className="container">
+                    {
+                        // isLoading ? (
+                        //   <p>Loading...</p>
+                        // ) : error ? (
+                        //   <p>Error: {error.message}</p>
+                        // ) : (
+                        <>
+                            {activeTab && (
+                                <button className='add-task' onClick={openPopup}>Add Task</button>
+                            )}
+                            {showPopup && (
+                                <div className="popup">
+                                    <label>Title:</label>
+                                    <input
+                                        type="text"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        placeholder="Enter title"
+                                    />
+                                    <label>Description:</label>
+                                    <textarea className='txt-area'
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="Enter description"
+                                    />
+                                    <button className='btn' onClick={postData}>Add</button>
+                                    <button className='btn-red' onClick={closePopup}>Cancel</button>
+                                </div>
+                            )}
+                            <div className="card-list">
+                                {filterTodoList.map((item) => (
+                                    <div className="card" key={item._id}>
+                                        <h3>Title: {item.title}</h3>
+                                        <p>Description: {item.description}</p>
+                                        {activeTab && (
+                                            <>
+                                                <button className='btn' onClick={() => updateData(item._id)}>Done</button>
+                                                <button className='btn-red' onClick={() => deleteData(item._id)}>Delete</button>
+                                            </>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                        //)
+                    }
+                </div >
+            </div >
+        );
+    }
+
+    export default App;
+
+}
+
+APP.CSS: {
+    body {
+        margin: 0;
+    }
+    
+    .headerr {
+        display: flex;
+        justify - content: center;
+        width: auto;
+    }
+    
+    .container {
+        background - color: aliceblue;
+        border - color: black;
+        padding - left: 0;
+    }
+    
+    .btn {
+        background - color: rgb(242, 189, 55);
+    }
+    
+    .btn - blue {
+        color: blue;
+    }
+    
+    .btn - red {
+        background - color: gray;
+    }
+    
+    .btn - red:hover {
+        background - color: red;
+        color: gray;
+    }
+
+
+    /* NavBar.css */
+    
+    .navbar {
+        background - color: #333;
+        display: flex;
+        justify - content: center;
+        padding: 10px;
+    }
+    
+    button {
+        background - color: transparent;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 0 10px;
+        cursor: pointer;
+        font - size: 16px;
+        outline: none;
+    }
+
+    button.active {
+        background - color: #4caf50;
+    }
+
+    button:hover {
+        background - color: #45a049;
+    }
+    
+    .card - list {
+        border - width: 1em;
+        border - color: black;
+        padding: 5 %;
+        padding - top: 0;
+    }
+    
+    .card {
+        background - color: rgb(198, 215, 247);
+    }
+    
+    
+    .add - task {
+        background - color: navy;
+        margin - left: 0;
+    }
+    
+    .txt - area {
+        margin - top: 20px;
+    }
+    
+    .popup {
+        background - color: antiquewhite;
+        margin: 20 %;
+        margin - top: 0;
+        margin - bottom: 0;
+        padding: 20 %;
+        padding - top: 0;
+        padding - bottom: 0;
+    }
+}
