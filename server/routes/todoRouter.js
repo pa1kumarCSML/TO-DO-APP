@@ -7,7 +7,6 @@ const { createTodo, getTodoList,
 router.post('/', createTodo)
 router.get('/', getTodoList)
 router.put('/:id', updateTodo)
-
 router.delete('/:id', deleteTodo)
 
 module.exports = router
